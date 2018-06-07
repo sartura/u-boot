@@ -37,6 +37,16 @@
  */
 #define CONFIG_SYS_MALLOC_LEN	(4 << 20) /* 4MiB for malloc() */
 
+/* UBIFS support */
+
+#define CONFIG_CMD_UBI
+#define CONFIG_CMD_UBIFS
+#define CONFIG_RBTREE
+#define CONFIG_MTD_DEVICE
+#define CONFIG_MTD_PARTITIONS
+#define CONFIG_CMD_MTDPARTS
+#define CONFIG_LZO
+
 /*
  * Other required minimal configurations
  */
