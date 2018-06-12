@@ -866,7 +866,7 @@ CONFIG_E1000=y
 # CONFIG_ETH_DESIGNWARE is not set
 # CONFIG_ETHOC is not set
 # CONFIG_FTMAC100 is not set
-# CONFIG_MVNETA is not set
+CONFIG_MVNETA=y
 # CONFIG_MACB is not set
 # CONFIG_PCH_GBE is not set
 # CONFIG_RGMII is not set
