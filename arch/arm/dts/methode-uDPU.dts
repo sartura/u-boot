@@ -161,7 +161,7 @@
 };
 
 /* CON29 */
-&usb2 {
+&usb3 {
 	status = "okay";
 };
 
