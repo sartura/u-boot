@@ -79,12 +79,13 @@
 
 /* Environment in SPI NOR flash */
 #define CONFIG_ENV_OFFSET		0x180000 /* as Marvell U-Boot version */
-#define CONFIG_ENV_SIZE			(64 << 10) /* 64KiB */
-#define CONFIG_ENV_SECT_SIZE		(64 << 10) /* 64KiB sectors */
+#define CONFIG_ENV_ADDR			0x180000
+#define CONFIG_ENV_SIZE			(128 << 10) /* 128 KiB */
+#define CONFIG_ENV_SECT_SIZE		(128 << 10) /* 128 KiB sectors */
 
 #define MTDIDS_DEFAULT          "nor0=spi0.0"
 #define MTDPARTS_DEFAULT        "mtdparts=spi0.0:" \
-				"2m(uboot)," \
+				"4m(uboot)," \
 				"-(ubifs)"
 
 /* Default Env vars */
