@@ -37,16 +37,6 @@
  */
 #define CONFIG_SYS_MALLOC_LEN	(4 << 20) /* 4MiB for malloc() */
 
-/* UBIFS support */
-
-#define CONFIG_CMD_UBI
-#define CONFIG_CMD_UBIFS
-#define CONFIG_RBTREE
-#define CONFIG_MTD_DEVICE
-#define CONFIG_MTD_PARTITIONS
-#define CONFIG_CMD_MTDPARTS
-#define CONFIG_LZO
-
 /*
  * Other required minimal configurations
  */
@@ -79,26 +69,8 @@
 
 /* Environment in SPI NOR flash */
 #define CONFIG_ENV_OFFSET		0x180000 /* as Marvell U-Boot version */
-#define CONFIG_ENV_ADDR			0x180000
-#define CONFIG_ENV_SIZE			(128 << 10) /* 128 KiB */
-#define CONFIG_ENV_SECT_SIZE		(128 << 10) /* 128 KiB sectors */
-
-#define MTDIDS_DEFAULT          "nor0=spi0.0"
-#define MTDPARTS_DEFAULT        "mtdparts=spi0.0:" \
-				"4m(uboot)," \
-				"-(ubifs)"
-
-/* Default Env vars */
-#define CONFIG_IPADDR		192.168.1.101	/* In order to cause an error */
-#define CONFIG_SERVERIP		192.168.1.100	/* In order to cause an error */
-#define CONFIG_NETMASK		255.255.255.0
-#define CONFIG_GATEWAYIP	10.4.50.254
-#define CONFIG_HAS_ETH1
-#define CONFIG_HAS_ETH2
-#define CONFIG_ETHPRIME		"eth0"
-
-#define CONFIG_ENV_OVERWRITE    /* ethaddr can be reprogrammed */
-
+#define CONFIG_ENV_SIZE			(64 << 10) /* 64KiB */
+#define CONFIG_ENV_SECT_SIZE		(64 << 10) /* 64KiB sectors */
 
 /*
  * Ethernet Driver configuration
