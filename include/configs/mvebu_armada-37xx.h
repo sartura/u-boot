@@ -72,6 +72,10 @@
 #define CONFIG_ENV_SIZE			(64 << 10) /* 64KiB */
 #define CONFIG_ENV_SECT_SIZE		(64 << 10) /* 64KiB sectors */
 
+/* Support for mtdparts */
+#define CONFIG_MTD_DEVICE
+#define CONFIG_MTD_PARTITIONS
+
 /*
  * Ethernet Driver configuration
  */
