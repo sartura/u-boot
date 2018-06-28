@@ -101,7 +101,7 @@ dtb-$(CONFIG_ARCH_MVEBU) +=			\
 	armada-xp-synology-ds414.dtb		\
 	armada-xp-theadorable.dtb		\
 	armada-38x-controlcenterdc.dtb		\
-	methode-uDPU.dtb
+	methode-micro-DPU.dtb
 
 dtb-$(CONFIG_ARCH_UNIPHIER_LD11) += \
 	uniphier-ld11-global.dtb \
