@@ -512,8 +512,8 @@ CONFIG_CMD_FS_GENERIC=y
 # CONFIG_CMD_FS_UUID is not set
 # CONFIG_CMD_JFFS2 is not set
 CONFIG_CMD_MTDPARTS=y
-CONFIG_MTDIDS_DEFAULT="nor1=spi0"
-CONFIG_MTDPARTS_DEFAULT="mtdparts=spi0:4m(uboot),-(ubifs)"
+CONFIG_MTDIDS_DEFAULT="nor0=spi0"
+CONFIG_MTDPARTS_DEFAULT="mtdparts=spi0:4m(uboot),-(rootfs)"
 # CONFIG_CMD_MTDPARTS_SPREAD is not set
 # CONFIG_CMD_REISER is not set
 # CONFIG_CMD_ZFS is not set

@@ -55,6 +55,7 @@
 
 	chosen {
 		stdout-path = "serial0:115200n8";
+		bootargs = "console=ttyMV0,115200 earlycon=ar3700_uart,0xd0012000";
 	};
 
 	aliases {
@@ -141,7 +142,7 @@
 			reg = <0 0x400000>;
 		};
 		partition@200000 {
-			label = "ubifs";
+			label = "rootfs";
 			reg = <0x400000 0x7100000>;
 		};
 	};
