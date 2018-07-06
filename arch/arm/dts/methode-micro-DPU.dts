@@ -88,7 +88,7 @@
         };
 
         phy2 {
-                phy-type = <PHY_TYPE_USB3_HOST0>;
+                phy-type = <PHY_TYPE_USB3_HOST1>;
                 phy-speed = <PHY_SPEED_5G>;
         };
 };
