@@ -12,6 +12,7 @@
 
 /* additions for new ARM relocation support */
 #define CONFIG_SYS_SDRAM_BASE	0x00000000
+#define CONFIG_SYS_BOOTM_LEN	(64 << 20)	/* Increase max gunzip size */
 
 /* auto boot */
 #define CONFIG_PREBOOT
