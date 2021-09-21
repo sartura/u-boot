@@ -109,12 +109,12 @@
 &comphy {
 	phy0 {
 		phy-type = <COMPHY_TYPE_SGMII1>;
-		phy-speed = <COMPHY_SPEED_1_25G>;
+		phy-speed = <COMPHY_SPEED_3_125G>;
 	};
 
 	phy1 {
 		phy-type = <COMPHY_TYPE_SGMII0>;
-		phy-speed = <COMPHY_SPEED_1_25G>;
+		phy-speed = <COMPHY_SPEED_3_125G>;
 	};
 
 	phy2 {
