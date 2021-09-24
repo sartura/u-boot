@@ -1,0 +1,279 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+/*
+ * Copyright (C) 2016- 2021 Marvell International Ltd.
+ * Copyright (C) 2021 Sartura Ltd.
+ */
+
+/*
+ * Device Tree file for Delta Networks TN48M
+ * Boot device: SPI NOR, 0x32 (SW3)
+ */
+
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/leds/common.h>
+#include "armada-7040.dtsi"
+
+/ {
+	model = "Delta Networks TN48M";
+	compatible = "delta,tn48m", "marvell,armada7040",
+		     "marvell,armada-ap806-quad", "marvell,armada-ap806";
+
+	chosen {
+		stdout-path = "serial0:115200n8";
+	};
+
+	aliases {
+		i2c0 = &cp0_i2c0;
+		i2c1 = &cp0_i2c1;
+		spi0 = &cp0_spi0;
+		spi1 = &ap_spi0;
+	};
+
+	memory@00000000 {
+		device_type = "memory";
+		reg = <0x0 0x0 0x0 0x80000000>; /* Needs to be updated to 8GB */
+	};
+
+	leds {
+		compatible = "gpio-leds";
+
+		/*
+		 * LED-s are dual color in a single package,
+		 * so the pin for the disabled color must be
+		 * used to provide the ground.
+		 */
+		sys-green {
+			gpios = <&cp0_gpio0 31 GPIO_ACTIVE_HIGH>;
+			color = <LED_COLOR_ID_GREEN>;
+			label = "system:green";
+			default-state = "on";
+		};
+
+		sys-amber {
+			gpios = <&cp0_gpio1 2 GPIO_ACTIVE_HIGH>;
+			color = <LED_COLOR_ID_AMBER>;
+			label = "system:amber";
+			default-state = "off";
+		};
+	};
+};
+
+&ap_pinctl {
+	   /* MPP Bus:
+	    * SPI  [0-3]
+	    * I2C  [4-5]
+	    * UART [11,19]
+	    */
+		  /* 0 1 2 3 4 5 6 7 8 9 */
+	pin-func = < 3 3 3 3 3 3 0 0 0 0
+		     0 3 0 0 0 0 0 0 0 3 >;
+
+	ap_spi_pins: ap-spi-pins {
+		marvell,pins = < 0 1 2 3 >;
+		marvell,function = <3>;
+	};
+};
+
+&uart0 {
+	status = "okay";
+};
+
+&ap_i2c0 {
+	status = "okay";
+
+	pinctrl-names = "default";
+	pinctrl-0 = <&ap_i2c0_pins>;
+};
+
+&ap_spi0 {
+	status = "okay";
+
+	pinctrl-names = "default";
+	pinctrl-0 = <&cp0_i2c0_pins>;
+
+	tpm@0 {
+		compatible = "infineon,slb9670", "tcg,tpm_tis-spi";
+		reg = <0>;
+	};
+};
+
+&cp0_i2c0 {
+	status = "okay";
+
+	pinctrl-names = "default";
+	pinctrl-0 = <&cp0_i2c0_pins>;
+	clock-frequency = <100000>;
+
+	eeprom@56 {
+		compatible = "atmel,24c64";
+		reg = <0x56>;
+	};
+};
+
+&cp0_i2c1 {
+	status = "okay";
+
+	pinctrl-names = "default";
+	pinctrl-0 = <&cp0_i2c1_pins>;
+	clock-frequency = <100000>;
+};
+
+&cp0_pinctl {
+		/* MPP Bus:
+		 * SMI           [0-1]
+		 * SATA0_PRESENT [29]
+		 * I2C0          [37-38]
+		 * I2C1          [35-36]
+		 * SPI           [56-59]
+		 */
+		/*   0   1   2   3   4   5   6   7   8   9 */
+	pin-func = < 0xA 0xA 0   0   0   0   0   0   0   0
+		     0   0   0   0   0   0   0   0   0   0
+		     0   0   0   0   0   0   0   0   0   9
+		     0   0   0   0   0   2   2   2   2   0
+		     0   0   0   0   0   0   0   0   0   0
+		     0   0   0   0   0   0   6   6   6   6
+		     0   0   0 >;
+
+	cp0_smi_pins: cp0-smi-pins {
+		marvell,pins = < 0 1 >;
+		marvell,function = <10>;
+	};
+};
+
+&cp0_spi0_pins {
+	marvell,pins = < 56 57 58 59 >;
+	marvell,function = <6>;
+};
+
+&cp0_spi0 {
+	status = "okay";
+
+	pinctrl-names = "default";
+	pinctrl-0 = <&cp0_spi0_pins>;
+
+	spi-flash@0 {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		compatible = "jedec,spi-nor";
+		reg = <0>;
+		spi-max-frequency = <20000000>;
+
+		partitions {
+			compatible = "fixed-partitions";
+			#address-cells = <1>;
+			#size-cells = <1>;
+
+			partition@0 {
+				label = "u-boot";
+				reg = <0x0 0x3f0000>;
+				read-only;
+			};
+
+			partition@3f0000 {
+				label = "u-boot-env";
+				reg = <0x3f0000 0x010000>;
+			};
+
+			partition@400000 {
+				label = "ONIE";
+				reg = <0x400000 0xc00000>;
+			};
+		};
+	};
+};
+
+&cp0_sata0 {
+	status = "okay";
+};
+
+&cp0_utmi0 {
+	status = "okay";
+};
+
+&cp0_comphy {
+	/*
+	 * CP0 Serdes Configuration:
+	 * Lane 0: PCIE0
+	 * Lane 1: SATA0
+	 * Lane 2: HS_SGMII0
+	 * Lane 3: SGMII1
+	 * Lane 4: NC
+	 * Lane 5: SGMII2
+	 */
+	phy0 {
+		phy-type = <COMPHY_TYPE_PEX0>;
+		phy-speed = <COMPHY_SPEED_5G>;
+	};
+
+	phy1 {
+		phy-type = <COMPHY_TYPE_SATA0>;
+		phy-speed = <COMPHY_SPEED_6G>;
+	};
+
+	phy2 {
+		phy-type = <COMPHY_TYPE_SGMII0>;
+		phy-speed = <COMPHY_SPEED_3_125G>;
+	};
+
+	phy3 {
+		phy-type = <COMPHY_TYPE_SGMII1>;
+		phy-speed = <COMPHY_SPEED_1_25G>;
+	};
+
+	phy4 {
+		phy-type = <COMPHY_TYPE_UNCONNECTED>;
+	};
+
+	phy5 {
+		phy-type = <COMPHY_TYPE_SGMII2>;
+		phy-speed = <COMPHY_SPEED_1_25G>;
+	};
+};
+
+&cp0_mdio {
+	status = "okay";
+
+	pinctrl-names = "default";
+	pinctrl-0 = <&cp0_smi_pins>;
+
+	ethphy: ethernet-phy@0 {
+		reg = <0>;
+	};
+};
+
+&cp0_ethernet {
+	status = "okay";
+};
+
+&cp0_eth0 {
+	status = "disabled";
+	phy-mode = "2500base-x";
+
+	fixed-link {
+	      speed = <2500>;
+	      full-duplex;
+	};
+};
+
+&cp0_eth1 {
+	status = "disabled";
+	phy-mode = "sgmii";
+
+	fixed-link {
+	      speed = <1000>;
+	      full-duplex;
+	};
+};
+
+&cp0_eth2 {
+	status = "okay";
+	phy = <&ethphy>;
+	phy-mode = "sgmii";
+};
+
+&cp0_pcie0 {
+	status = "okay";
+	ranges = <0x81000000 0x0 0xf9020000 0x0 0xf9020000 0x0 0x10000
+        	  0x82000000 0x0 0xc0000000 0x0 0xc0000000 0x0 0x30000000>;
+};

@@ -35,6 +35,38 @@ DECLARE_GLOBAL_DATA_PTR;
 #define I2C_IO_REG_CL		((1 << I2C_IO_REG_0_USB_H0_CL) | \
 				 (1 << I2C_IO_REG_0_USB_H1_CL))
 
+/*
+ * Information specific to the Delta Networks TN48M switch.
+ */
+
+/* ADT7473 FAN controller */
+#define ADT7473_ADDR			0x2e
+#define ADT7473_DEVICE_ID_REG		0x3d
+#define ADT7473_COMPANY_ID_REG		0x3e
+
+#define ADT7473_DEVICE_ID		0x73
+#define ADT7473_COMPANY_ID		0x41
+
+#define ADT7473_PWM1_CONFIG_REG		0x5c
+#define ADT7473_PWM2_CONFIG_REG		0x5d
+#define ADT7473_PWM3_CONFIG_REG		0x5e
+
+#define ADT7473_PWM_NUMBER		3
+#define ADT7473_PWM_CONFIG_OFFSET	0x1
+/* Required config is:
+ * SPIN <2:0> 010 = 250ms (Default value)
+ * SLOW <3> 0 = (Default value)
+ * INV <4> 0 = Logic high (Default value)
+ * BHVR <7:5> 111 = Manual control
+ */
+#define ADT7473_PWM_CONFIG_VAL			0xe2
+
+#define ADT7473_PWM1_CURRENT_DUTY_CYCLE_REG	0x30
+#define ADT7473_PWM2_CURRENT_DUTY_CYCLE_REG	0x31
+#define ADT7473_PWM3_CURRENT_DUTY_CYCLE_REG	0x32
+/* 33% duty cycle by default */
+#define ADT7473_PWM_DUTY_CYCLE_VAL		0x54
+
 static int usb_enabled = 0;
 
 /* Board specific xHCI dis-/enable code */
@@ -140,6 +172,67 @@ int board_xhci_enable(fdt_addr_t base)
 	return 0;
 }
 
+int tn48m_fan_init(void)
+{
+	struct udevice *dev;
+	int ret, i;
+	u8 buf;
+
+	ret = i2c_get_chip_for_busnum(0, ADT7473_ADDR, 1, &dev);
+	if (ret) {
+		printf("Cannot find ADT7473: %d\n", ret);
+		return ret;
+	}
+
+	ret = dm_i2c_read(dev, ADT7473_DEVICE_ID_REG, &buf, 1);
+	if (ret) {
+		printf("Failed to read ADT7473 device ID: %d\n", ret);
+		return ret;
+	}
+
+	if (buf != ADT7473_DEVICE_ID) {
+		printf("Device found is not a ADT7473!\n");
+		return -EINVAL;
+	}
+
+	ret = dm_i2c_read(dev, ADT7473_COMPANY_ID_REG, &buf, 1);
+	if (ret) {
+		printf("Failed to read ADT7473 company ID!\n");
+		return -EIO;
+	}
+
+	if (buf != ADT7473_COMPANY_ID) {
+		printf("Device found is not a ADT7473!\n");
+		return -EINVAL;
+	}
+
+	for (i = 0; i < ADT7473_PWM_NUMBER; i++) {
+		buf = ADT7473_PWM_CONFIG_VAL;
+		ret = dm_i2c_write(dev,
+				   ADT7473_PWM1_CONFIG_REG + i * ADT7473_PWM_CONFIG_OFFSET,
+				   &buf,
+				   1);
+		if (ret) {
+			printf("Failed writing to ADT7473: %d\n", ret);
+			return ret;
+		}
+	}
+
+	for (i = 0; i < ADT7473_PWM_NUMBER; i++) {
+		buf = ADT7473_PWM_DUTY_CYCLE_VAL;
+		ret = dm_i2c_write(dev,
+				   ADT7473_PWM1_CURRENT_DUTY_CYCLE_REG + i * ADT7473_PWM_CONFIG_OFFSET,
+				   &buf,
+				   1);
+		if (ret) {
+			printf("Failed writing to ADT7473: %d\n", ret);
+			return ret;
+		}
+	}
+
+	return 0;
+}
+
 int board_early_init_f(void)
 {
 	/* Nothing to do yet */
@@ -157,8 +250,14 @@ int board_init(void)
 
 int board_late_init(void)
 {
-	/* Pre-configure the USB ports (overcurrent, VBus) */
-	board_xhci_config();
+	int ret;
 
-	return 0;
+	/* Pre-configure the USB ports (overcurrent, VBus) */
+	ret = board_xhci_config();
+
+	if (of_machine_is_compatible("delta,tn48m")) {
+		ret = tn48m_fan_init();
+	}
+
+	return ret;
 }
