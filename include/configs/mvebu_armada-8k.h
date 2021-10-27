@@ -29,6 +29,13 @@
 /* End of 16M scrubbed by training in bootrom */
 #define CONFIG_SYS_INIT_SP_ADDR         (CONFIG_SYS_TEXT_BASE + 0xFF0000)
 
+/*
+ * Platform identification (Marvell hw_info parameters)
+ */
+#ifdef CONFIG_MVEBU_MAC_HW_INFO
+#define CONFIG_ID_EEPROM /* U-Boot mac command */
+#endif
+
 /* When runtime detection fails this is the default */
 
 #define CONFIG_SYS_MAX_NAND_DEVICE	1

@@ -41,6 +41,13 @@
 #define DEFAULT_ENV_IS_RW		/* required for configuring default fdtfile= */
 
 /*
+ * Platform identification (Marvell hw_info parameters)
+ */
+#ifdef CONFIG_MVEBU_MAC_HW_INFO
+#define CONFIG_ID_EEPROM /* U-Boot mac command */
+#endif
+
+/*
  * Ethernet Driver configuration
  */
 #define CONFIG_ARP_TIMEOUT	200

@@ -794,7 +794,7 @@ static int drop_var_from_set(const char *name, int nvars, char * vars[])
  * multi-line values.
  *
  * In theory, arbitrary separator characters can be used, but only
- * '\0' and '\n' have really been tested.
+ * '\0', '\n' and 0x20 have been tested.
  */
 
 int himport_r(struct hsearch_data *htab,

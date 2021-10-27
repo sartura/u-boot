@@ -1,0 +1,20 @@
+menu "Marvell Armada common configuration"
+depends on TARGET_MVEBU_ARMADA_37XX || TARGET_MVEBU_ARMADA_8K
+
+config MVEBU_MAC_HW_INFO
+	bool "Marvell hw_info (mac) support"
+	depends on SPI_FLASH && ENV_IS_IN_SPI_FLASH && ARCH_MVEBU
+	default n
+	help
+	  Enable loading of the Marvell hw_info parameters from the
+	  SPI flash hw_info area. Parameters (usually the board serial
+	  number and MAC addresses) are then imported into the
+	  existing U-Boot environment.
+	  Implementation of this command is compatible with the
+	  original Marvell U-Boot command. Reading and writing is
+	  supported.
+	  EEPROM config pattern and checksum aren't supported.
+	  After enabled, these parameters are managed from the common
+	  U-Boot mac command.
+
+endmenu
