@@ -150,6 +150,11 @@
 	pinctrl-0 = <&cp0_i2c0_pins>;
 	status = "okay";
 	clock-frequency = <100000>;
+
+	eeprom@57 {
+		compatible = "atmel,24c64";
+		reg = <0x57>;
+	};
 };
 
 &cp0_i2c1 {
