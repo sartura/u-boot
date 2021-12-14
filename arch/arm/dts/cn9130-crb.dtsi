@@ -152,7 +152,7 @@
 	clock-frequency = <100000>;
 
 	eeprom@57 {
-		compatible = "atmel,24c64";
+		compatible = "atmel,24c256", "marvell,hw-info";
 		reg = <0x57>;
 	};
 };
