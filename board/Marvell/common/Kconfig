@@ -1,9 +1,9 @@
 menu "Marvell Armada common configuration"
-depends on TARGET_MVEBU_ARMADA_37XX || TARGET_MVEBU_ARMADA_8K
+depends on TARGET_MVEBU_ARMADA_37XX || TARGET_MVEBU_ARMADA_8K || TARGET_OCTEONTX2_CN913x
 
 config MVEBU_MAC_HW_INFO
 	bool "Marvell hw_info (mac) support"
-	depends on SPI_FLASH && ENV_IS_IN_SPI_FLASH && ARCH_MVEBU
+	depends on I2C_EEPROM && ARCH_MVEBU
 	default n
 	help
 	  Enable loading of the Marvell hw_info parameters from the

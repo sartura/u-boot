@@ -11,10 +11,11 @@
 
 #include <command.h>
 #include <common.h>
+#include <dm.h>
 #include <env.h>
 #include <env_internal.h>
-#include <spi.h>
-#include <spi_flash.h>
+#include <i2c_eeprom.h>
+#include <stdlib.h>
 
 #define HW_INFO_MAX_ENV_SIZE		0x1F0
 #define HW_INFO_ENV_OFFSET		0xA
@@ -24,105 +25,20 @@
 
 #define HW_INFO_MERGED_VARIABLE		"read_board_hw_info"
 
-static char hw_info_allowed_parameters[][HW_INFO_MAX_NAME_LEN] = {
-	"pcb_slm",
-	"pcb_rev",
-	"eco_rev",
-	"pcb_sn",
-	"ethaddr",
-	"eth1addr",
-	"eth2addr",
-	"eth3addr",
-	"eth4addr",
-	"eth5addr",
-	"eth6addr",
-	"eth7addr",
-	"eth8addr",
-	"eth9addr",
-};
-
-static int hw_info_allowed_param_count = (sizeof(hw_info_allowed_parameters) /
-					sizeof(hw_info_allowed_parameters[0]));
-
-static int hw_info_check_parameter(char *name)
-{
-	int idx;
-
-	for (idx = 0; idx < hw_info_allowed_param_count; idx++) {
-		if (strcmp(name, hw_info_allowed_parameters[idx]) == 0)
-			return 0;
-	}
-
-	return -EINVAL;
-}
-
 /**
- * read_spi_flash_offset() - Read data from the SPI flash
+ * read_eeprom_offset() - Read data from the SPI flash
  * @buf: Buffer to write in
  * @offset: Offset from the flash start
  *
- * Read SPI flash data into the buffer from offset to HW_INFO_MAX_ENV_SIZE.
+ * Read EEPROM data into the buffer from offset to HW_INFO_MAX_ENV_SIZE.
  */
-static int read_spi_flash_offset(char *buf, int offset)
+static int read_eeprom_offset(struct udevice *hwinfo_dev, char *buf, int offset)
 {
-	struct spi_flash *flash;
 	int ret;
 
-	flash = spi_flash_probe(CONFIG_SF_DEFAULT_BUS,
-				CONFIG_SF_DEFAULT_CS,
-				CONFIG_SF_DEFAULT_SPEED,
-				CONFIG_SF_DEFAULT_MODE);
-
-	if (!flash) {
-		printf("Error - unable to probe SPI flash.\n");
-		return -EIO;
-	}
-
-	ret = spi_flash_read(flash, offset, HW_INFO_MAX_ENV_SIZE, buf);
+	ret = i2c_eeprom_read(hwinfo_dev, offset, buf, HW_INFO_MAX_ENV_SIZE);
 	if (ret) {
-		printf("Error - unable to read hw_info environment from SPI flash.\n");
-		return ret;
-	}
-
-	return ret;
-}
-
-/**
- * write_spi_flash_offset() - Write a buffer to SPI flash
- * @buf: Buffer to write to SPI flash
- * @offset: Offset from the flash start
- * @size: Size of the buffer content
- *
- * This function probes the SPI flash and updates the specified flash location
- * with new data from the buffer.
- */
-static int write_spi_flash_offset(char *buf, fdt_addr_t flash_offset, int env_offset, ssize_t size)
-{
-	ssize_t safe_size, erase_size;
-	struct spi_flash *flash;
-	int ret;
-
-	flash = spi_flash_probe(CONFIG_SF_DEFAULT_BUS,
-				CONFIG_SF_DEFAULT_CS,
-				CONFIG_SF_DEFAULT_SPEED,
-				CONFIG_SF_DEFAULT_MODE);
-
-	if (!flash) {
-		printf("Error - unable to probe SPI flash.\n");
-		return -EIO;
-	}
-
-	safe_size = size > HW_INFO_MAX_ENV_SIZE ? HW_INFO_MAX_ENV_SIZE : size;
-	erase_size = safe_size +
-		     (flash->erase_size - safe_size % flash->erase_size);
-	ret = spi_flash_erase(flash, flash_offset, erase_size);
-	if (ret) {
-		printf("Error - unable to erase the hw_info area on SPI flash.\n");
-		return ret;
-	}
-	ret = spi_flash_write(flash, flash_offset + env_offset, safe_size, buf);
-	if (ret) {
-		printf("Error - unable to write hw_info parameters to SPI flash.\n");
+		printf("Error - unable to read hw_info environment from EEPROM.\n");
 		return ret;
 	}
 
@@ -135,7 +51,7 @@ static int write_spi_flash_offset(char *buf, fdt_addr_t flash_offset, int env_of
  * This function prints all Marvell hw_info parameters, which are stored in
  * the SPI flash.
  */
-static int cmd_hw_info_dump(fdt_addr_t flash_offset)
+static int cmd_hw_info_dump(struct udevice *hwinfo_dev)
 {
 	char buffer[HW_INFO_MAX_ENV_SIZE];
 	struct hsearch_data htab;
@@ -143,10 +59,10 @@ static int cmd_hw_info_dump(fdt_addr_t flash_offset)
 	ssize_t len;
 	int ret = 0;
 
-	ret = read_spi_flash_offset(buffer, flash_offset +
-				    HW_INFO_ENV_OFFSET);
+	ret = read_eeprom_offset(hwinfo_dev, buffer, HW_INFO_ENV_OFFSET);
 	if (ret)
 		goto err;
+
 	memset(&htab, 0, sizeof(htab));
 	if (!hcreate_r(HW_INFO_MAX_ENV_SIZE, &htab)) {
 		ret = -ENOMEM;
@@ -180,20 +96,20 @@ err:
  * cmd_hw_info_read() - Import the hw_info parameters into U-Boot env
  * @print_env: Print U-Boot environment after new parameters are imported
  *
- * This function reads the Marvell hw_info parameters from SPI flash and
+ * This function reads the Marvell hw_info parameters from EEPROM and
  * imports them into the U-Boot env.
  */
-static int cmd_hw_info_read(fdt_addr_t flash_offset, bool print_env)
+static int cmd_hw_info_read(struct udevice *hwinfo_dev, bool print_env)
 {
 	char buffer[HW_INFO_MAX_ENV_SIZE];
 	char *res = NULL;
 	ssize_t len;
 	int ret = 0;
 
-	ret = read_spi_flash_offset(buffer, flash_offset +
-				    HW_INFO_ENV_OFFSET);
+	ret = read_eeprom_offset(hwinfo_dev, buffer, HW_INFO_ENV_OFFSET);
 	if (ret)
 		goto err;
+
 	if (!himport_r(&env_htab, buffer, HW_INFO_MAX_ENV_SIZE,
 		       HW_INFO_ENV_SEP, H_NOCLEAR, 0, 0, NULL)) {
 		ret = -EFAULT;
@@ -217,104 +133,20 @@ err:
 }
 
 /**
- * cmd_hw_info_save() - Save a parameter from U-Boot env to hw_info parameters
- * @name: Name of the U-Boot env parameter to save
- *
- * This function finds the specified parameter by name in the U-Boot env
- * and then updates the Marvell hw_info parameters with the new value.
- */
-static int cmd_hw_info_save(fdt_addr_t flash_offset, char *name)
-{
-	char buffer[HW_INFO_MAX_ENV_SIZE];
-	struct env_entry e, *ep, *rv;
-	struct hsearch_data htab;
-	char *res = NULL;
-	ssize_t len;
-	int ret = 0;
-
-	ret = hw_info_check_parameter(name);
-	if (ret) {
-		printf("Invalid parameter %s, stopping.\n", name);
-		goto err;
-	}
-
-	ret = read_spi_flash_offset(buffer, flash_offset +
-				    HW_INFO_ENV_OFFSET);
-	if (ret)
-		goto err;
-	memset(&htab, 0, sizeof(htab));
-	if (!hcreate_r(HW_INFO_MAX_ENV_SIZE, &htab)) {
-		ret = -ENOMEM;
-		goto err;
-	}
-	if (!himport_r(&htab, buffer, HW_INFO_MAX_ENV_SIZE,
-		       HW_INFO_ENV_SEP, H_NOCLEAR, 0, 0, NULL)) {
-		ret = -EFAULT;
-		goto err_htab;
-	}
-
-	e.key = name;
-	e.data = NULL;
-	if (!hsearch_r(e, ENV_FIND, &ep, &env_htab, H_HIDE_DOT)) {
-		ret = -ENOENT;
-		goto err_htab;
-	}
-	if (!ep) {
-		ret = -ENOENT;
-		goto err_htab;
-	}
-
-	printf("Storing %s=%s to hw_info...\n", ep->key, ep->data);
-
-	e.key = ep->key;
-	e.data = ep->data;
-	if (!hsearch_r(e, ENV_ENTER, &rv, &htab, H_HIDE_DOT)) {
-		ret = -EINVAL;
-		goto err_htab;
-	}
-	if (!rv) {
-		ret = -EINVAL;
-		goto err_htab;
-	}
-	len = hexport_r(&htab, HW_INFO_ENV_SEP, H_MATCH_KEY | H_MATCH_IDENT,
-			&res, 0, 0, NULL);
-	if (len <= 0) {
-		free(res);
-		goto ret_htab;
-	}
-	ret = write_spi_flash_offset(res, flash_offset,
-				     HW_INFO_ENV_OFFSET, len);
-	free(res);
-	if (ret)
-		goto err_htab;
-
-	printf("Successfully stored the Marvell hw_info parameters.\n");
-	return 0;
-ret_htab:
-	hdestroy_r(&htab);
-	return ret;
-err_htab:
-	hdestroy_r(&htab);
-err:
-	printf("## Error: cannot store hw_info parameters to SPI flash\n");
-	return ret;
-}
-
-/**
- * mac_read_from_eeprom() - Read the parameters from SPI flash.
+ * mac_read_from_eeprom() - Read the parameters from EEPROM.
  *
  * This function reads the content of the Marvell hw_info parameters from the
- * SPI flash and imports them into the U-Boot environment.
+ * EEPROM and imports them into the U-Boot environment.
  * This includes MAC addresses and board serial numbers.
  *
  * The import is performed only once.
  *
  * This function is a part of the U-Boot mac command and must be executed
- * after SPI flash initialization.
+ * after EEPROM initialization.
  */
 int mac_read_from_eeprom(void)
 {
-	fdt_addr_t flash_offset, size;
+	struct udevice *hwinfo_dev;
 	ofnode hw_info_node;
 
 	hw_info_node = ofnode_by_compatible(ofnode_null(), "marvell,hw-info");
@@ -323,17 +155,17 @@ int mac_read_from_eeprom(void)
 		return -ENODEV;
 	}
 
-	flash_offset = ofnode_get_addr_size_index_notrans(hw_info_node, 0, &size);
-	if (flash_offset == FDT_ADDR_T_NONE || !size) {
-		printf("Missing hw-info offset or size!\n");
-		return -EINVAL;
+	if (uclass_get_device_by_ofnode(UCLASS_I2C_EEPROM, hw_info_node, &hwinfo_dev)) {
+		printf("Missing hw-info EEPROM device!\n");
+		return -ENODEV;
 	}
 
 	if (env_get_ulong(HW_INFO_MERGED_VARIABLE, 10, 0) == 0) {
 		if (env_set_ulong(HW_INFO_MERGED_VARIABLE, 1))
 			return -ENOENT;
-		return cmd_hw_info_read(flash_offset, false);
+		return cmd_hw_info_read(hwinfo_dev, false);
 	}
+
 	return 0;
 }
 
@@ -374,7 +206,7 @@ static void print_platform_help(void)
 int do_mac(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 {
 	const char *cmd = argv[1];
-	fdt_addr_t flash_offset, size;
+	struct udevice *hwinfo_dev;
 	ofnode hw_info_node;
 	int ret = 0;
 
@@ -384,29 +216,20 @@ int do_mac(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
 		return -ENODEV;
 	}
 
-	flash_offset = ofnode_get_addr_size_index_notrans(hw_info_node, 0, &size);
-	if (flash_offset == FDT_ADDR_T_NONE || !size) {
-		printf("Missing hw-info offset or size!\n");
-		return -EINVAL;
+	if (uclass_get_device_by_ofnode(UCLASS_I2C_EEPROM, hw_info_node, &hwinfo_dev)) {
+		printf("Missing hw-info EEPROM device!\n");
+		return -ENODEV;
 	}
 
 	if (argc == 1) {
-		ret = cmd_hw_info_dump(flash_offset);
+		ret = cmd_hw_info_dump(hwinfo_dev);
 		if (ret)
 			return -EINVAL;
 		return CMD_RET_SUCCESS;
 	}
 
 	if (!strcmp(cmd, "read")) {
-		if (cmd_hw_info_read(flash_offset, true))
-			return -EINVAL;
-	} else if (!strcmp(cmd, "save")) {
-		if (argc != 3) {
-			printf("Please pass an additional argument to specify, "
-			       "which env parameter to save.\n");
-			return -EINVAL;
-		}
-		if (cmd_hw_info_save(flash_offset, argv[2]))
+		if (cmd_hw_info_read(hwinfo_dev, true))
 			return -EINVAL;
 	} else {
 		ret = cmd_usage(cmdtp);
