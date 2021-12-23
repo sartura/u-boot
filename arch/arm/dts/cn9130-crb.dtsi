@@ -54,6 +54,23 @@
 			};
 		};
 	};
+
+	ap807 {
+		sdhci@6e0000 {
+			vqmmc-supply = <&ap0_reg_mmc_vccq>;
+		};
+		config-space {
+			ap0_reg_mmc_vccq: ap0_mmc_vccq@0 {
+				compatible = "regulator-gpio";
+				regulator-name = "ap0_mmc_vccq";
+				regulator-min-microvolt = <1800000>;
+				regulator-max-microvolt = <3300000>;
+				gpios = <&expander0 5 GPIO_ACTIVE_HIGH>;
+				states = <1800000 0x1
+					  3300000 0x0>;
+			};
+		};
+	};
 };
 
 &uart0 {
@@ -79,6 +96,9 @@
 	pinctrl-0 = <&ap_emmc_pins>;
 	bus-width = <8>;
 	status = "okay";
+	vqmmc-supply = <&ap0_reg_mmc_vccq>;
+	mmc-hs200-1_8v;
+	non-removable;
 };
 
 /*
@@ -151,6 +171,13 @@
 	status = "okay";
 	clock-frequency = <100000>;
 
+	expander0: mcp23x17@20 {
+		compatible = "microchip,mcp23017";
+		gpio-controller;
+		#gpio-cells = <2>;
+		reg = <0x20>;
+	};
+
 	eeprom@57 {
 		compatible = "atmel,24c256", "marvell,hw-info";
 		reg = <0x57>;
@@ -170,6 +197,8 @@
 	bus-width = <4>;
 	vqmmc-supply = <&cp0_reg_sd_vccq>;
 	vmmc-supply = <&cp0_reg_sd_vcc>;
+	broken-cd;
+	sd-uhs-sdr104;
 	status = "okay";
 };
 
