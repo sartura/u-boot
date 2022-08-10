@@ -780,6 +780,7 @@ static const struct udevice_id dw_spi_ids[] = {
 	{ .compatible = "mscc,jaguar2-spi", .data = (ulong)dw_spi_apb_init },
 	{ .compatible = "snps,axs10x-spi", .data = (ulong)dw_spi_apb_init },
 	{ .compatible = "snps,hsdk-spi", .data = (ulong)dw_spi_apb_init },
+	{ .compatible = "microchip,sparx5-spi", .data = (ulong)dw_spi_apb_init },
 	{ }
 };
 
