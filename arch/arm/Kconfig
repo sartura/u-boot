@@ -1097,6 +1097,25 @@ config ARCH_SNAPDRAGON
 	select SPMI
 	imply CMD_DM
 
+config ARCH_SPARX5
+	bool "Microchip SparX-5"
+	select ARM64
+	select ENABLE_ARM_SOC_BOOT0_HOOK
+	select ARMV8_SET_SMPEN
+	select ARCH_MISC_INIT
+	select ARMV8_MULTIENTRY
+	select ARMV8_SPIN_TABLE
+	select DM
+	select DM_SERIAL
+	select OF_CONTROL
+	select OF_SEPARATE
+	select GICV3
+	select SPI
+	select DM_SPI
+	select DESIGNWARE_SPI
+	select SYS_NS16550
+	imply CMD_DM
+
 config ARCH_SOCFPGA
 	bool "Altera SOCFPGA family"
 	select ARCH_EARLY_INIT_R
@@ -2259,6 +2278,8 @@ source "arch/arm/mach-rockchip/Kconfig"
 source "arch/arm/mach-s5pc1xx/Kconfig"
 
 source "arch/arm/mach-snapdragon/Kconfig"
+
+source "arch/arm/mach-sparx5/Kconfig"
 
 source "arch/arm/mach-socfpga/Kconfig"
 
