@@ -22,6 +22,7 @@ obj-$(CONFIG_ARCH_MESON) += meson/
 obj-$(CONFIG_ARCH_MTMIPS) += mtmips/
 obj-$(CONFIG_ARCH_NPCM) += nuvoton/
 obj-$(CONFIG_ARCH_ROCKCHIP) += rockchip/
+obj-$(CONFIG_ARCH_SPARX5) += clk-sparx5.o
 obj-$(CONFIG_ARCH_SOCFPGA) += altera/
 obj-$(CONFIG_ARCH_STM32) += stm32/
 obj-$(CONFIG_ARCH_STM32MP) += stm32/

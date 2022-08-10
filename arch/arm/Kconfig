@@ -1117,6 +1117,7 @@ config ARCH_SPARX5
 	select DM_SPI
 	select DESIGNWARE_SPI
 	select SYS_NS16550
+	select CLK
 	imply CMD_DM
 
 config ARCH_SOCFPGA
