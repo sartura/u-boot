@@ -1107,6 +1107,9 @@ config ARCH_SPARX5
 	select ARMV8_SPIN_TABLE
 	select DM
 	select DM_SERIAL
+	select DM_GPIO
+	select PINCTRL
+	select PINCTRL_FULL
 	select OF_CONTROL
 	select OF_SEPARATE
 	select GICV3

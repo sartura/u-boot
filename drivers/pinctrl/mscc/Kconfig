@@ -48,3 +48,11 @@ config PINCTRL_MSCC_SERVAL
 	    Support pin multiplexing and pin configuration control on
 	    Microsemi serval SoCs.
 
+config PINCTRL_SPARX5
+	depends on ARCH_SPARX5 && PINCTRL_FULL && OF_CONTROL
+	select PINCTRL_MSCC
+	default y
+	bool "Microchip SparX-5 pin control driver"
+	help
+	    Support pin multiplexing and pin configuration control on
+	    Microchip SparX-5 SoC-s.
