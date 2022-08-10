@@ -35,6 +35,13 @@ config IMX_TMU
 	  The boot is hold to the cool device to throttle CPUs when the
 	  passive trip is crossed
 
+config SPARX5_THERMAL
+        bool "Temperature sensor driver for Microchip SparX-5 SoC-s"
+        depends on ARCH_SPARX5
+        help
+	 Enable thermal support for for the Microchip SparX-5 SoC-s.
+	 The driver supports reading SoC die temperature.
+
 config TI_DRA7_THERMAL
         bool "Temperature sensor driver for TI dra7xx SOCs"
         help
