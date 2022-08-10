@@ -29,4 +29,13 @@
 #define GICD_BASE                       (0x600300000)
 #define GICR_BASE                       (0x600340000)
 
+#define BOOT_TARGET_DEVICES(func) \
+	func(MMC, mmc, 0) \
+	func(DHCP, dhcp, na)
+
+#include <config_distro_bootcmd.h>
+
+#define CONFIG_EXTRA_ENV_SETTINGS	\
+	BOOTENV
+
 #endif /* _CONFIG_SPARX5_H */

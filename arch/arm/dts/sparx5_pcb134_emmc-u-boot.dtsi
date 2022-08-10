@@ -1,0 +1,60 @@
+// SPDX-License-Identifier: GPL-2.0-or-later OR MIT
+
+#include <dt-bindings/mscc/fireant_data.h>
+#include "sparx5-u-boot.dtsi"
+
+&spi0 {
+	/*
+	 * DW driver only looks at the root node for freq.
+	 * Set 10 MHz which seems to work fine and is plenty
+	 * fast for U-boot
+	 */
+	spi-max-frequency = <10000000>;
+
+	/* There is no SPI MUX support in OpenWrt */
+	/delete-node/ spi@0;
+
+	spi-flash@0 {
+		compatible = "jedec,spi-nor";
+		spi-max-frequency = <10000000>;
+		reg = <0>;
+
+		partitions {
+			compatible = "fixed-partitions";
+			#address-cells = <1>;
+			#size-cells = <1>;
+
+			partition@0 {
+				label = "u-boot";
+				reg = <0x0 0x100000>;
+			};
+
+			partition@100000 {
+				label = "u-boot-env";
+				reg = <0x100000 0x40000>;
+			};
+		};
+	};
+};
+
+/* Linux DTS uses "ok" which is not part of DT specification */
+&mdio3 {
+	status = "okay";
+};
+
+&switch {
+	status = "okay";
+	pinctrl-0 = <&sgpio2_pins>;
+	pinctrl-names = "default";
+
+	ethernet-ports {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		port@64 {
+			reg = <64>;
+			phy-handle = <&phy64>;
+			phys = <IF_SGMII FA_SERDES_TYPE_6G 0>;
+		};
+	};
+};

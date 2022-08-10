@@ -53,4 +53,6 @@ config TARGET_FIREANT_REAL
 	bool "FireAnt raw metal"
 	default y
 
+source "board/microchip/sparx5/Kconfig"
+
 endif
