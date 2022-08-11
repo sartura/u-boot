@@ -656,6 +656,16 @@ config MMC_SDHCI_S5P
 
 	  If unsure, say N.
 
+config MMC_SDHCI_SPARX5
+	bool "SDHCI support for Microchip SparX-5"
+	depends on ARCH_SPARX5
+	depends on MMC_SDHCI
+	depends on DM_MMC && OF_CONTROL && BLK
+	select MMC_SDHCI_IO_ACCESSORS
+	help
+	  This enables support for Secure Digital Host Controller Interface (SDHCI)
+	  on Microchip SparX-5 SoCs.
+
 config MMC_SDHCI_SPEAR
 	bool "SDHCI support on ST SPEAr platform"
 	depends on MMC_SDHCI
