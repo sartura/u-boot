@@ -6,3 +6,4 @@ obj-$(CONFIG_MSCC_JR2_SWITCH) += jr2_switch.o mscc_xfer.o mscc_miim.o
 obj-$(CONFIG_MSCC_SERVALT_SWITCH) += servalt_switch.o mscc_xfer.o mscc_miim.o
 obj-$(CONFIG_MSCC_SERVAL_SWITCH) += serval_switch.o mscc_xfer.o mscc_mac_table.o mscc_miim.o
 obj-$(CONFIG_MSCC_FELIX_SWITCH) += felix_switch.o
+obj-$(CONFIG_MSCC_SPARX5_SWITCH) += fireant_switch.o fireant_serdes.o mscc_xfer.o

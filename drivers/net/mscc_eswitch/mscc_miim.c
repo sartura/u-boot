@@ -3,9 +3,13 @@
  * Copyright (c) 2018 Microsemi Corporation
  */
 
+#include <dm.h>
+#include <dm/pinctrl.h>
+#include <dm/device_compat.h>
 #include <miiphy.h>
 #include <wait_bit.h>
 #include <linux/bitops.h>
+#include <linux/io.h>
 #include "mscc_miim.h"
 
 #define MIIM_STATUS			0x0

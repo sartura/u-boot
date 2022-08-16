@@ -50,3 +50,10 @@ config MSCC_MIIM
 	depends on DM_MDIO
 	help
 	  This driver supports the MIIM MDIO controller used in MSCC SoC-s.
+
+config MSCC_SPARX5_SWITCH
+	bool "Microchip SparX-5 switch driver"
+	depends on DM_ETH && ARCH_SPARX5
+	select PHYLIB
+	help
+	  This driver supports the Microchip SparX-5 network switch device.
