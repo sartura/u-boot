@@ -5,6 +5,8 @@
  */
 
 #include <common.h>
+#include <dm.h>
+#include <thermal.h>
 #include <asm/io.h>
 #include <asm/armv8/mmu.h>
 #include <asm/system.h>
@@ -66,6 +68,23 @@ int print_cpuinfo(void)
 	printf("CPU:   Microchip SparX-5 VSC%lx rev %lu",
 	       FIELD_GET(MSCC_M_DEVCPU_GCB_CHIP_ID_PART_ID, chip_id),
 	       FIELD_GET(MSCC_M_DEVCPU_GCB_CHIP_ID_REV_ID, chip_id));
+
+#if defined(CONFIG_SPARX5_THERMAL)
+	struct udevice *thermal_dev;
+	int ret, cpu_tmp;
+
+	ret = uclass_get_device(UCLASS_THERMAL, 0, &thermal_dev);
+	if (!ret) {
+		ret = thermal_get_temp(thermal_dev, &cpu_tmp);
+		if (!ret)
+			printf(" at %d°C", cpu_tmp);
+		else
+			debug(" - invalid sensor data: %d\n", ret);
+	} else {
+		debug(" - invalid sensor device: %d\n", ret);
+	}
+#endif
+	puts("\n");
 
 	return 0;
 }
