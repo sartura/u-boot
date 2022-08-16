@@ -1,4 +1,5 @@
 
+obj-$(CONFIG_MSCC_MIIM) += mscc_miim_dm.o
 obj-$(CONFIG_MSCC_OCELOT_SWITCH) += ocelot_switch.o mscc_xfer.o mscc_mac_table.o mscc_miim.o
 obj-$(CONFIG_MSCC_LUTON_SWITCH) += luton_switch.o mscc_xfer.o mscc_mac_table.o mscc_miim.o
 obj-$(CONFIG_MSCC_JR2_SWITCH) += jr2_switch.o mscc_xfer.o mscc_miim.o

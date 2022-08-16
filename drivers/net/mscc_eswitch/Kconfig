@@ -44,3 +44,9 @@ config MSCC_FELIX_SWITCH
 	help
 	  This driver supports the Ethernet switch integrated in the
 	  NXP LS1028A SoC.
+
+config MSCC_MIIM
+	bool "MIIM MDIO driver"
+	depends on DM_MDIO
+	help
+	  This driver supports the MIIM MDIO controller used in MSCC SoC-s.
