@@ -121,6 +121,12 @@ config RESET_SOCFPGA
 	help
 	  Support for reset controller on SoCFPGA platform.
 
+config RESET_SPARX5
+	bool "Reset controller driver for Microchip SparX-5"
+	depends on DM_RESET && ARCH_SPARX5
+	help
+	  Support for reset controller on Microchip SparX-5.
+
 config RESET_MEDIATEK
 	bool "Reset controller driver for MediaTek SoCs"
 	depends on DM_RESET && ARCH_MEDIATEK && CLK
