@@ -49,6 +49,7 @@ struct mscc_pinctrl {
 	struct udevice *dev;
 	struct pinctrl_dev *pctl;
 	void __iomem *regs;
+	void __iomem *regs_cfg;
 	struct mscc_pmx_func *func;
 	int num_func;
 	const struct mscc_pin_data *mscc_pins;

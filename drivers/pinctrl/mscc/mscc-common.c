@@ -25,6 +25,18 @@
 #include <linux/io.h>
 #include "mscc-common.h"
 
+/* PINCONFIG bits */
+#define BIAS_PD_BIT	BIT(4)
+#define BIAS_PU_BIT	BIT(3)
+#define BIAS_BITS	(BIAS_PD_BIT|BIAS_PU_BIT)
+#define SCHMITT_BIT	BIT(2)
+#define DRIVE_MASK 	GENMASK(1, 0)
+
+static inline void __iomem *mscc_regaddr(const struct mscc_pinctrl *info, u8 regno)
+{
+	return info->regs + info->mscc_gpios[regno];
+}
+
 static void mscc_writel(unsigned int offset, void *addr)
 {
 	if (offset < 32)
@@ -235,6 +247,90 @@ static int mscc_gpio_direction_output(struct udevice *dev,
 	return mscc_gpio_set(dev, offset, value);
 }
 
+#if CONFIG_IS_ENABLED(PINCONF)
+static const struct pinconf_param mscc_conf_params[] = {
+	{ "bias-disable",          PIN_CONFIG_BIAS_DISABLE, 0 },
+	{ "bias-pull-up",          PIN_CONFIG_BIAS_PULL_UP, BIAS_PU_BIT },
+	{ "bias-pull-down",        PIN_CONFIG_BIAS_PULL_DOWN, BIAS_PD_BIT },
+	{ "input-schmitt-enable",  PIN_CONFIG_INPUT_SCHMITT_ENABLE, SCHMITT_BIT },
+	{ "input-schmitt-disable", PIN_CONFIG_INPUT_SCHMITT_ENABLE, 0 },
+	{ "input-enable",          PIN_CONFIG_INPUT_ENABLE, 1 },
+	{ "output-high",           PIN_CONFIG_OUTPUT, 1, },
+	{ "output-low",            PIN_CONFIG_OUTPUT, 0, },
+	{ "drive-strength",        PIN_CONFIG_DRIVE_STRENGTH, 0 },
+};
+
+int mscc_pinconf_set_param(struct udevice *dev, u32 pin, u32 param,  u32 arg)
+{
+	struct mscc_pinctrl *info = dev_get_priv(dev);
+	void __iomem *reg_addr = info->regs_cfg + (pin * sizeof(u32));
+	int err = 0;
+
+	switch (param) {
+	case PIN_CONFIG_BIAS_PULL_UP:
+	case PIN_CONFIG_BIAS_DISABLE:
+	case PIN_CONFIG_BIAS_PULL_DOWN:
+		debug("%s: GPIO%d set bias 0x%x\n", __func__, pin, arg);
+		clrsetbits_le32(reg_addr, BIAS_BITS, arg);
+		break;
+
+	case PIN_CONFIG_INPUT_SCHMITT_ENABLE:
+		debug("%s: GPIO%d schmitt 0x%x\n", __func__, pin, arg);
+		clrsetbits_le32(reg_addr, SCHMITT_BIT, arg);
+		break;
+
+	case PIN_CONFIG_DRIVE_STRENGTH:
+		debug("%s: GPIO%d drive-strength 0x%x\n", __func__, pin, arg);
+		clrsetbits_le32(reg_addr, DRIVE_MASK, arg);
+		break;
+
+	default:
+		err = -ENOTSUPP;
+	}
+
+	return err;
+}
+
+static int mscc_pinconf_set(struct udevice *dev, unsigned int pin,
+			   unsigned int param, unsigned int arg)
+{
+	struct mscc_pinctrl *info = dev_get_priv(dev);
+	int err = 0;
+
+	switch (param) {
+	case PIN_CONFIG_OUTPUT:
+		debug("%s: GPIO%d set %s\n", __func__, pin, arg ? "ON" : "OFF");
+		if (arg)
+			mscc_writel(pin, mscc_regaddr(info, MSCC_GPIO_OUT_SET));
+		else
+			mscc_writel(pin, mscc_regaddr(info, MSCC_GPIO_OUT_CLR));
+		mscc_setbits(pin, mscc_regaddr(info, MSCC_GPIO_OE));
+		break;
+
+	case PIN_CONFIG_INPUT_ENABLE:
+		debug("%s: GPIO%d set as %sput\n", __func__, pin, arg ? "out" : "in");
+		mscc_clrbits(pin, mscc_regaddr(info, MSCC_GPIO_OE));
+		break;
+
+	case PIN_CONFIG_BIAS_DISABLE:
+	case PIN_CONFIG_BIAS_PULL_UP:
+	case PIN_CONFIG_BIAS_PULL_DOWN:
+	case PIN_CONFIG_INPUT_SCHMITT_ENABLE:
+	case PIN_CONFIG_DRIVE_STRENGTH:
+		if (info->regs_cfg == NULL)
+			err = -ENOTSUPP;
+		else
+			err = mscc_pinconf_set_param(dev, pin, param, arg);
+		break;
+
+	default:
+		err = -ENOTSUPP;
+	}
+
+	return err;
+}
+#endif
+
 const struct dm_gpio_ops mscc_gpio_ops = {
 	.set_value = mscc_gpio_set,
 	.get_value = mscc_gpio_get,
@@ -249,6 +345,11 @@ const struct pinctrl_ops mscc_pinctrl_ops = {
 	.get_functions_count = mscc_get_functions_count,
 	.get_function_name = mscc_get_function_name,
 	.pinmux_set = mscc_pinmux_set_mux,
+#if CONFIG_IS_ENABLED(PINCONF)
+	.pinconf_num_params = ARRAY_SIZE(mscc_conf_params),
+	.pinconf_params = mscc_conf_params,
+	.pinconf_set = mscc_pinconf_set,
+#endif
 	.set_state = pinctrl_generic_set_state,
 };
 
@@ -260,9 +361,11 @@ int mscc_pinctrl_probe(struct udevice *dev, int num_func,
 	struct mscc_pinctrl *priv = dev_get_priv(dev);
 	int ret;
 
-	priv->regs = dev_remap_addr(dev);
+	priv->regs = dev_remap_addr_index(dev, 0);
 	if (!priv->regs)
 		return -EINVAL;
+
+	priv->regs_cfg = dev_remap_addr_index(dev, 1);
 
 	priv->func = devm_kzalloc(dev, num_func * sizeof(struct mscc_pmx_func),
 				  GFP_KERNEL);
