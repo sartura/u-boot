@@ -300,14 +300,10 @@ static int mii_multi_chip_mode_write(struct udevice *bus, int dev_smi_addr,
 	return 0;
 }
 
-/* Bring-up board-specific network stuff */
-int last_stage_init(void)
+static int espressobin_last_stage_init(void)
 {
 	struct udevice *bus;
 	ofnode node;
-
-	if (!of_machine_is_compatible("globalscale,espressobin"))
-		return 0;
 
 	node = ofnode_by_compatible(ofnode_null(), "marvell,orion-mdio");
 	if (!ofnode_valid(node) ||
@@ -353,6 +349,16 @@ int last_stage_init(void)
 				  MVEBU_G2_SMI_PHY_CMD_REG, 0x9640);
 	mii_multi_chip_mode_write(bus, 1, MVEBU_SW_G2_SMI_ADDR,
 				  MVEBU_G2_SMI_PHY_CMD_REG, 0x9660);
+
+	return 0;
+}
+
+/* Bring-up board-specific network stuff */
+int last_stage_init(void)
+{
+
+	if (of_machine_is_compatible("globalscale,espressobin"))
+		return espressobin_last_stage_init();
 
 	return 0;
 }
