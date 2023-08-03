@@ -86,7 +86,7 @@ int board_init(void)
 }
 
 #ifdef CONFIG_BOARD_LATE_INIT
-int board_late_init(void)
+static int espressobin_board_late_init(void)
 {
 	char *ptr = &default_environment[0];
 	struct udevice *dev;
@@ -95,9 +95,6 @@ int board_late_init(void)
 	const char *mac;
 	char eth[10];
 	int i;
-
-	if (!of_machine_is_compatible("globalscale,espressobin"))
-		return 0;
 
 	/*
 	 * Find free space for new variables in default_environment[] array.
@@ -159,6 +156,14 @@ int board_late_init(void)
 	 * byte which terminates the list. So everything after ptr is ignored.
 	 */
 	*ptr = '\0';
+
+	return 0;
+}
+
+int board_late_init(void)
+{
+	if (of_machine_is_compatible("globalscale,espressobin"))
+		return espressobin_board_late_init();
 
 	return 0;
 }
