@@ -57,6 +57,29 @@
 #define PORT_REG_SWITCH_ID		0x03
 #define PORT_REG_CTRL			0x04
 
+/* SERDES registers */
+#define MV88E6390_SGMII_BMCR		(0x2000 + MII_BMCR)
+
+#define MV88E6393X_SERDES_POC		0xf002
+#define MV88E6393X_SERDES_POC_RESET	BIT(15)
+#define MV88E6393X_SERDES_POC_PDOWN	BIT(5)
+#define MV88E6393X_SERDES_POC_PCS_MASK	GENMASK(2, 0)
+#define MV88E6393X_SERDES_POC_PCS_1000BASEX	0x0000
+#define MV88E6393X_SERDES_POC_PCS_2500BASEX	0x0001
+#define MV88E6393X_SERDES_POC_PCS_SGMII_PHY	0x0002
+#define MV88E6393X_SERDES_POC_PCS_SGMII_MAC	0x0003
+#define MV88E6393X_SERDES_POC_PCS_5GBASER	0x0004
+#define MV88E6393X_SERDES_POC_PCS_10GBASER	0x0005
+#define MV88E6393X_SERDES_POC_PCS_USXGMII_PHY	0x0006
+#define MV88E6393X_SERDES_POC_PCS_USXGMII_MAC	0x0007
+
+#define MV88E6393X_SERDES_CTRL1			0xf003
+#define MV88E6393X_SERDES_CTRL1_TX_PDOWN	BIT(9)
+#define MV88E6393X_SERDES_CTRL1_RX_PDOWN	BIT(8)
+
+#define MV88E6393X_ERRATA_4_8_REG		0xf074
+#define MV88E6393X_ERRATA_4_8_BIT		BIT(14)
+
 /* Phy registers */
 #define PHY_REG_PAGE			0x16
 
@@ -72,7 +95,7 @@
 #define PORT_REG_STATUS_SPEED_100	1
 #define PORT_REG_STATUS_SPEED_1000	2
 
-#define PORT_REG_STATUS_CMODE_MASK		0xF
+#define PORT_REG_STATUS_CMODE_MASK		GENMASK(3, 0)
 #define PORT_REG_STATUS_CMODE_SGMII		0xa
 #define PORT_REG_STATUS_CMODE_1000BASE_X	0x9
 #define PORT_REG_STATUS_CMODE_100BASE_X		0x8
@@ -154,6 +177,7 @@
 #define PORT_SWITCH_ID_6250		0x2500
 #define PORT_SWITCH_ID_6320		0x1150
 #define PORT_SWITCH_ID_6352		0x3520
+#define PORT_SWITCH_ID_6361		0x2610
 
 struct mv88e6xxx_priv {
 	int smi_addr;
@@ -298,12 +322,12 @@ static int mv88e6xxx_phy_read_indirect(struct udevice *dev, int phyad, int devad
 		 * Register OP in the PHY command register.
 		 */
 		res = mv88e6xxx_reg_write(dev, priv->global2,
-		                          GLOBAL2_REG_PHY_DATA,
-		                          reg);
+					  GLOBAL2_REG_PHY_DATA,
+					  reg);
 
 		res = mv88e6xxx_reg_write(dev, priv->global2,
-		                          GLOBAL2_REG_PHY_CMD,
-		                          SMI_CMD_SET_C45_ADDR(phyad, devad));
+					  GLOBAL2_REG_PHY_CMD,
+					  SMI_CMD_SET_C45_ADDR(phyad, devad));
 
 		/* Wait for busy bit to clear */
 		res = mv88e6xxx_phy_wait(dev);
@@ -344,12 +368,12 @@ static int mv88e6xxx_phy_write_indirect(struct udevice *dev, int phyad,
 		 * Register OP in the PHY command register.
 		 */
 		res = mv88e6xxx_reg_write(dev, priv->global2,
-		                          GLOBAL2_REG_PHY_DATA,
-		                          reg);
+					  GLOBAL2_REG_PHY_DATA,
+					  reg);
 
 		res = mv88e6xxx_reg_write(dev, priv->global2,
-		                          GLOBAL2_REG_PHY_CMD,
-		                          SMI_CMD_SET_C45_ADDR(phyad, devad));
+					  GLOBAL2_REG_PHY_CMD,
+					  SMI_CMD_SET_C45_ADDR(phyad, devad));
 
 		/* Wait for busy bit to clear */
 		res = mv88e6xxx_phy_wait(dev);
@@ -378,17 +402,17 @@ static int mv88e6xxx_phy_write_indirect(struct udevice *dev, int phyad,
 }
 
 /* Wrapper function to make calls to phy_read_indirect simpler */
-static int mv88e6xxx_phy_read(struct udevice *dev, int phy, int reg)
+static int mv88e6xxx_phy_read(struct udevice *dev, int phy, int devad, int reg)
 {
 	return mv88e6xxx_phy_read_indirect(dev, DEVADDR_PHY(phy),
-					   MDIO_DEVAD_NONE, reg);
+					   devad, reg);
 }
 
 /* Wrapper function to make calls to phy_write_indirect simpler */
-static int mv88e6xxx_phy_write(struct udevice *dev, int phy, int reg, u16 val)
+static int mv88e6xxx_phy_write(struct udevice *dev, int phy, int devad, int reg, u16 val)
 {
 	return mv88e6xxx_phy_write_indirect(dev, DEVADDR_PHY(phy),
-					    MDIO_DEVAD_NONE, reg, val);
+					    devad, reg, val);
 }
 
 static int mv88e6xxx_port_read(struct udevice *dev, u8 port, u8 reg)
@@ -407,7 +431,7 @@ static int mv88e6xxx_port_write(struct udevice *dev, u8 port, u8 reg, u16 val)
 
 static int mv88e6xxx_set_page(struct udevice *dev, u8 phy, u8 page)
 {
-	return mv88e6xxx_phy_write(dev, phy, PHY_REG_PAGE, page);
+	return mv88e6xxx_phy_write(dev, phy, MDIO_DEVAD_NONE, PHY_REG_PAGE, page);
 }
 
 static int mv88e6xxx_get_switch_id(struct udevice *dev)
@@ -436,6 +460,17 @@ static bool mv88e6xxx_6352_family(struct udevice *dev)
 	return false;
 }
 
+static bool mv88e6xxx_amethyst_family(struct udevice *dev)
+{
+	struct mv88e6xxx_priv *priv = dev_get_priv(dev);
+
+	switch (priv->id) {
+	case PORT_SWITCH_ID_6361:
+		return true;
+	}
+	return false;
+}
+
 static int mv88e6xxx_get_cmode(struct udevice *dev, u8 port)
 {
 	int res;
@@ -444,6 +479,20 @@ static int mv88e6xxx_get_cmode(struct udevice *dev, u8 port)
 	if (res < 0)
 		return res;
 	return res & PORT_REG_STATUS_CMODE_MASK;
+}
+
+static int mv88e6xxx_set_cmode(struct udevice *dev, u8 port, u8 cmode)
+{
+	int res;
+
+	res = mv88e6xxx_port_read(dev, port, PORT_REG_STATUS);
+	if (res < 0)
+		return res;
+
+	res &= ~PORT_REG_STATUS_CMODE_MASK;
+	res |= FIELD_PREP(PORT_REG_STATUS_CMODE_MASK, cmode);
+
+	return mv88e6xxx_port_write(dev, port, PORT_REG_STATUS, res);
 }
 
 static int mv88e6xxx_switch_reset(struct udevice *dev)
@@ -499,11 +548,11 @@ static int mv88e6xxx_serdes_init(struct udevice *dev)
 		return val;
 
 	/* Power up serdes module */
-	val = mv88e6xxx_phy_read(dev, DEVADDR_SERDES, MII_BMCR);
+	val = mv88e6xxx_phy_read(dev, DEVADDR_SERDES, MDIO_DEVAD_NONE, MII_BMCR);
 	if (val < 0)
 		return val;
 	val &= ~(BMCR_PDOWN);
-	val = mv88e6xxx_phy_write(dev, DEVADDR_SERDES, MII_BMCR, val);
+	val = mv88e6xxx_phy_write(dev, DEVADDR_SERDES, MDIO_DEVAD_NONE, MII_BMCR, val);
 	if (val < 0)
 		return val;
 
@@ -536,6 +585,14 @@ static int mv88e6xxx_priv_reg_offs_pre_init(struct udevice *dev)
 		return 0;
 	}
 
+	priv->port_reg_base = 0x00;
+	priv->id = mv88e6xxx_get_switch_id(dev);
+	if (priv->id != 0xfff0) {
+		priv->global1 = 0x1B;
+		priv->global2 = 0x1C;
+		return 0;
+	}
+
 	/*
 	 * Now try via port registers with device address 0x08
 	 * (88E6020 and compatible switches).
@@ -556,14 +613,14 @@ static int mv88e6xxx_priv_reg_offs_pre_init(struct udevice *dev)
 static int mv88e6xxx_mdio_read(struct udevice *dev, int addr, int devad, int reg)
 {
 	return mv88e6xxx_phy_read_indirect(dev->parent, DEVADDR_PHY(addr),
-					   MDIO_DEVAD_NONE, reg);
+					   devad, reg);
 }
 
 static int mv88e6xxx_mdio_write(struct udevice *dev, int addr, int devad,
 				int reg, u16 val)
 {
 	return mv88e6xxx_phy_write_indirect(dev->parent, DEVADDR_PHY(addr),
-					    MDIO_DEVAD_NONE, reg, val);
+					    devad, reg, val);
 }
 
 static const struct mdio_ops mv88e6xxx_mdio_ops = {
@@ -590,10 +647,168 @@ U_BOOT_DRIVER(mv88e6xxx_mdio) = {
 	.plat_auto	= sizeof(struct mdio_perdev_priv),
 };
 
+static int mv88e6390_serdes_power_sgmii(struct udevice *dev, int lane, bool up)
+{
+	int ret;
+	u16 new_val;
+
+	ret = mv88e6xxx_phy_read(dev, lane, MDIO_MMD_PHYXS, MV88E6390_SGMII_BMCR);
+	if (ret < 0)
+		return ret;
+
+	if (up)
+		new_val = ret & ~(BMCR_RESET | BMCR_LOOPBACK | BMCR_PDOWN);
+	else
+		new_val = ret | BMCR_PDOWN;
+
+	if (ret != new_val)
+		return mv88e6xxx_phy_write(dev, lane, MDIO_MMD_PHYXS,
+					   MV88E6390_SGMII_BMCR,
+					   new_val);
+
+	return 0;
+}
+
+static int mv88e6393x_serdes_power_lane(struct udevice *dev, int lane, bool on)
+{
+	int ret;
+
+	ret = mv88e6xxx_phy_read(dev, lane, MDIO_MMD_PHYXS, MV88E6393X_SERDES_CTRL1);
+	if (ret < 0)
+		return ret;
+
+	if (on)
+		ret &= ~(MV88E6393X_SERDES_CTRL1_TX_PDOWN |
+			 MV88E6393X_SERDES_CTRL1_RX_PDOWN);
+	else
+		ret |= MV88E6393X_SERDES_CTRL1_TX_PDOWN |
+		       MV88E6393X_SERDES_CTRL1_RX_PDOWN;
+
+	return mv88e6xxx_phy_write(dev, lane, MDIO_MMD_PHYXS,
+				   MV88E6393X_SERDES_CTRL1,
+				   ret);
+}
+
+static int mv88e6393x_serdes_erratum_4_6(struct udevice *dev, int lane)
+{
+	int ret;
+
+	/* mv88e6393x family errata 4.6:
+	 * Cannot clear PwrDn bit on SERDES if device is configured CPU_MGD
+	 * mode or P0_mode is configured for [x]MII.
+	 * Workaround: Set SERDES register 4.F002 bit 5=0 and bit 15=1.
+	 *
+	 * It seems that after this workaround the SERDES is automatically
+	 * powered up (the bit is cleared), so power it down.
+	 */
+	ret = mv88e6xxx_phy_read(dev, lane, MDIO_MMD_PHYXS, MV88E6393X_SERDES_POC);
+	if (ret < 0)
+		return ret;
+
+	ret &= ~MV88E6393X_SERDES_POC_PDOWN;
+	ret |= MV88E6393X_SERDES_POC_RESET;
+
+	ret = mv88e6xxx_phy_write(dev, lane, MDIO_MMD_PHYXS,
+				  MV88E6393X_SERDES_POC,
+				  ret);
+	if (ret < 0)
+		return ret;
+
+	ret = mv88e6390_serdes_power_sgmii(dev, lane, false);
+	if (ret < 0)
+		return ret;
+
+	return mv88e6393x_serdes_power_lane(dev, lane, false);
+}
+
+static int mv88e6393x_serdes_setup_errata(struct udevice *dev)
+{
+	int ret;
+
+	ret = mv88e6393x_serdes_erratum_4_6(dev, 0);
+	if (ret)
+		return ret;
+
+	ret = mv88e6393x_serdes_erratum_4_6(dev, 9);
+	if (ret)
+		return ret;
+
+	ret = mv88e6393x_serdes_erratum_4_6(dev, 10);
+	if (ret)
+		return ret;
+
+	return 0;
+}
+
+static int mv88e6393x_serdes_erratum_4_8(struct udevice *dev, int lane)
+{
+	u16 pcs;
+	int ret;
+
+	/* mv88e6393x family errata 4.8:
+	 * When a SERDES port is operating in 1000BASE-X or SGMII mode link may
+	 * not come up after hardware reset or software reset of SERDES core.
+	 * Workaround is to write SERDES register 4.F074.14=1 for only those
+	 * modes and 0 in all other modes.
+	 */
+	ret = mv88e6xxx_phy_read(dev, lane, MDIO_MMD_PHYXS, MV88E6393X_SERDES_POC);
+	if (ret < 0)
+		return ret;
+	else
+		pcs = ret;
+
+	pcs &= MV88E6393X_SERDES_POC_PCS_MASK;
+
+	ret = mv88e6xxx_phy_read(dev, lane, MDIO_MMD_PHYXS, MV88E6393X_ERRATA_4_8_REG);
+	if (ret < 0)
+		return ret;
+
+	if (pcs == MV88E6393X_SERDES_POC_PCS_1000BASEX ||
+	    pcs == MV88E6393X_SERDES_POC_PCS_SGMII_PHY ||
+	    pcs == MV88E6393X_SERDES_POC_PCS_SGMII_MAC)
+		ret |= MV88E6393X_ERRATA_4_8_BIT;
+	else
+		ret &= ~MV88E6393X_ERRATA_4_8_BIT;
+
+	return mv88e6xxx_phy_write(dev, lane, MDIO_MMD_PHYXS,
+				   MV88E6393X_ERRATA_4_8_REG,
+				   ret);
+}
+
+static int mv88e6393x_serdes_power(struct udevice *dev, int port, int lane, bool on)
+{
+	int ret;
+
+	if (port != 0 && port != 9 && port != 10)
+		return -EOPNOTSUPP;
+
+	if (on) {
+		ret = mv88e6393x_serdes_erratum_4_8(dev, lane);
+		if (ret)
+			return ret;
+
+		ret = mv88e6393x_serdes_power_lane(dev, lane, true);
+		if (ret)
+			return ret;
+	}
+
+	ret = mv88e6390_serdes_power_sgmii(dev, lane, on);
+	if (ret)
+		return ret;
+
+	if (!on) {
+		ret = mv88e6393x_serdes_power_lane(dev, lane, false);
+		if (ret)
+			return ret;
+	}
+
+	return ret;
+}
+
 static int mv88e6xxx_port_probe(struct udevice *dev, int port, struct phy_device *phy)
 {
 	struct mv88e6xxx_priv *priv = dev_get_priv(dev);
-	int supported;
+	int supported, ret;
 
 	switch (priv->id) {
 	case PORT_SWITCH_ID_6020:
@@ -609,6 +824,12 @@ static int mv88e6xxx_port_probe(struct udevice *dev, int port, struct phy_device
 	phy->supported &= supported;
 	phy->advertising &= supported;
 
+	if (mv88e6xxx_amethyst_family(dev)) {
+		ret = mv88e6393x_serdes_power(dev, port, port, true);
+		if (ret)
+			return ret;
+	}
+
 	return phy_config(phy);
 }
 
@@ -616,7 +837,7 @@ static int mv88e6xxx_port_enable(struct udevice *dev, int port, struct phy_devic
 {
 	int val, ret;
 
-	dev_dbg(dev, "%s P%d phy:0x%08x %s\n", __func__, port,
+	dev_info(dev, "%s P%d phy:0x%08x %s\n", __func__, port,
 		phy->phy_id, phy_string_for_interface(phy->interface));
 
 	if (phy->phy_id == PHY_FIXED_ID) {
@@ -653,7 +874,7 @@ static int mv88e6xxx_port_enable(struct udevice *dev, int port, struct phy_devic
 		if (ret < 0)
 			return ret;
 
-		if (mv88e6xxx_6352_family(dev)) {
+		if (mv88e6xxx_6352_family(dev) || mv88e6xxx_amethyst_family(dev)) {
 			/* validate interface type */
 			dev_dbg(dev, "validate interface type\n");
 			val = mv88e6xxx_get_cmode(dev, port);
@@ -669,6 +890,10 @@ static int mv88e6xxx_port_enable(struct udevice *dev, int port, struct phy_devic
 				break;
 			case PHY_INTERFACE_MODE_1000BASEX:
 				if (val != PORT_REG_STATUS_CMODE_1000BASE_X)
+					goto mismatch;
+				break;
+			case PHY_INTERFACE_MODE_SGMII:
+				if (val != PORT_REG_STATUS_CMODE_SGMII)
 					goto mismatch;
 				break;
 mismatch:
@@ -697,7 +922,7 @@ static void mv88e6xxx_port_disable(struct udevice *dev, int port, struct phy_dev
 {
 	int val;
 
-	dev_dbg(dev, "%s P%d phy:0x%08x %s\n", __func__, port,
+	dev_info(dev, "%s P%d phy:0x%08x %s\n", __func__, port,
 		phy->phy_id, phy_string_for_interface(phy->interface));
 
 	val = mv88e6xxx_port_read(dev, port, PORT_REG_CTRL);
@@ -771,6 +996,7 @@ static int mv88e6xxx_probe(struct udevice *dev)
 	case PORT_SWITCH_ID_6176:
 	case PORT_SWITCH_ID_6240:
 	case PORT_SWITCH_ID_6352:
+	case PORT_SWITCH_ID_6361:
 		priv->port_count = 11;
 		break;
 	case PORT_SWITCH_ID_6020:
@@ -803,11 +1029,44 @@ static int mv88e6xxx_probe(struct udevice *dev)
 		}
 	}
 
+	if (mv88e6xxx_amethyst_family(dev)) {
+		phy_interface_t mode = ofnode_read_phy_mode(dsa_pdata->cpu_port_node);
+		u8 cmode;
+
+		ret = mv88e6393x_serdes_setup_errata(dev);
+		if (ret)
+			return ret;
+
+		switch (mode) {
+		case PHY_INTERFACE_MODE_SGMII:
+			cmode = PORT_REG_STATUS_CMODE_SGMII;
+			break;
+		case PHY_INTERFACE_MODE_1000BASEX:
+			cmode = PORT_REG_STATUS_CMODE_1000BASE_X;
+			break;
+		default:
+			dev_err(dev, "Unsupported PHY mode %s for CPU port %d\n",
+				phy_string_for_interface(mode),
+				dsa_pdata->cpu_port);
+
+			return -EINVAL;
+		};
+
+		ret = mv88e6xxx_set_cmode(dev, dsa_pdata->cpu_port, cmode);
+		if (ret < 0)
+			return ret;
+
+		ret = mv88e6xxx_set_cmode(dev, 10, PORT_REG_STATUS_CMODE_SGMII);
+		if (ret < 0)
+			return ret;
+	}
+
 	return 0;
 }
 
 static const struct udevice_id mv88e6xxx_ids[] = {
 	{ .compatible = "marvell,mv88e6085" },
+	{ .compatible = "marvell,mv88e6190" },
 	{ }
 };
 
