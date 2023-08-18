@@ -174,6 +174,7 @@ DECLARE_GLOBAL_DATA_PTR;
 #define      MVNETA_GMAC_MAX_RX_SIZE_SHIFT       2
 #define      MVNETA_GMAC_MAX_RX_SIZE_MASK        0x7ffc
 #define      MVNETA_GMAC0_PORT_ENABLE            BIT(0)
+#define      MVNETA_GMAC0_PORT_TYPE              BIT(1)
 #define MVNETA_GMAC_CTRL_2                       0x2c08
 #define      MVNETA_GMAC2_PCS_ENABLE             BIT(3)
 #define      MVNETA_GMAC2_PORT_RGMII             BIT(4)
@@ -190,6 +191,7 @@ DECLARE_GLOBAL_DATA_PTR;
 #define MVNETA_GMAC_AUTONEG_CONFIG               0x2c0c
 #define      MVNETA_GMAC_FORCE_LINK_DOWN         BIT(0)
 #define      MVNETA_GMAC_FORCE_LINK_PASS         BIT(1)
+#define      MVNETA_GMAC_IN_BAND_AN_EN           BIT(2)
 #define      MVNETA_GMAC_IB_BYPASS_AN_EN         BIT(3)
 #define      MVNETA_GMAC_CONFIG_MII_SPEED        BIT(5)
 #define      MVNETA_GMAC_CONFIG_GMII_SPEED       BIT(6)
@@ -1183,6 +1185,17 @@ static void mvneta_adjust_link(struct udevice *dev)
 			      MVNETA_GMAC_ADVERT_FC_EN |
 			      MVNETA_GMAC_SAMPLE_TX_CFG_EN;
 
+		/*switch (pp->phy_interface) {
+		case PHY_INTERFACE_MODE_1000BASEX:
+		case PHY_INTERFACE_MODE_2500BASEX:
+			//val &= ~MVNETA_GMAC_IB_BYPASS_AN_EN;
+			val |= MVNETA_GMAC_IN_BAND_AN_EN;
+			break;
+		default:
+			val &= ~MVNETA_GMAC_IN_BAND_AN_EN;
+			break;
+		}*/
+
 		if (phydev->duplex)
 			val |= MVNETA_GMAC_CONFIG_FULL_DUPLEX;
 
@@ -1396,6 +1409,10 @@ static int mvneta_port_power_up(struct mvneta_port *pp, int phy_mode)
 	case PHY_INTERFACE_MODE_RGMII_ID:
 		ctrl |= MVNETA_GMAC2_PORT_RGMII;
 		break;
+	case PHY_INTERFACE_MODE_1000BASEX:
+	case PHY_INTERFACE_MODE_2500BASEX:
+		ctrl |= MVNETA_GMAC2_PCS_ENABLE | MVNETA_GMAC2_PORT_RGMII;
+		break;
 	default:
 		return -EINVAL;
 	}
@@ -1407,6 +1424,22 @@ static int mvneta_port_power_up(struct mvneta_port *pp, int phy_mode)
 	while ((mvreg_read(pp, MVNETA_GMAC_CTRL_2) &
 		MVNETA_GMAC2_PORT_RESET) != 0)
 		continue;
+
+	ctrl = mvreg_read(pp, MVNETA_GMAC_CTRL_0);
+
+	switch (phy_mode) {
+	case PHY_INTERFACE_MODE_SGMII:
+		ctrl &= ~MVNETA_GMAC0_PORT_TYPE;
+		break;
+	case PHY_INTERFACE_MODE_1000BASEX:
+	case PHY_INTERFACE_MODE_2500BASEX:
+		ctrl |= MVNETA_GMAC0_PORT_TYPE;
+		break;
+	default:
+		break;
+	}
+
+	mvreg_write(pp, MVNETA_GMAC_CTRL_0, ctrl);
 
 	return 0;
 }
