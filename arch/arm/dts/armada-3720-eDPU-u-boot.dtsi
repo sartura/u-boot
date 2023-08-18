@@ -32,6 +32,15 @@
 	bootph-all;
 };
 
+&eth0 {
+	phy-mode = "1000base-x";
+
+	fixed-link {
+		speed = <1000>;
+		full-duplex;
+	};
+};
+
 &eth1 {
 	fixed-link {
 		speed = <1000>;
@@ -45,4 +54,71 @@
  */
 &mdio {
 	status = "okay";
+};
+
+&switch {
+	status = "okay";
+
+	mdio {};
+
+	ports {
+		port@0 {
+			phy-mode = "1000base-x";
+
+			fixed-link {
+				speed = <1000>;
+				full-duplex;
+			};
+		};
+
+		port@1 {
+			status = "disabled";
+			reg = <1>;
+		};
+
+		port@2 {
+			status = "disabled";
+			reg = <2>;
+		};
+
+		port@3 {
+			status = "disabled";
+			reg = <3>;
+		};
+
+		port@4 {
+			status = "disabled";
+			reg = <4>;
+		};
+
+		port@5 {
+			status = "disabled";
+			reg = <5>;
+		};
+
+		port@6 {
+			status = "disabled";
+			reg = <6>;
+		};
+
+		port@7 {
+			status = "disabled";
+			reg = <7>;
+		};
+
+		port@8 {
+			status = "disabled";
+			reg = <8>;
+		};
+
+		port@a {
+			//phy-mode = "1000base-x";
+			phy-mode = "sgmii";
+
+			fixed-link {
+				speed = <1000>;
+				full-duplex;
+			};
+		};
+	};
 };
