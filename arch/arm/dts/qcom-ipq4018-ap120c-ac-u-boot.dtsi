@@ -1,0 +1,70 @@
+// SPDX-License-Identifier: GPL-2.0-or-later OR MIT
+
+#include "qcom-ipq4019-u-boot.dtsi"
+
+/ {
+	memory {
+		device_type = "memory";
+		reg = <0x80000000 0x10000000>;
+	};
+};
+
+&serial0_pins {
+	bootph-all;
+};
+
+&spi0_pins {
+	bootph-all;
+};
+
+&blsp1_spi1 {
+	bootph-all;
+
+	num-cs = <2>;
+
+	flash@0 {
+		partitions {
+			/*
+			 * Remove read-only property from the U-Boot partition.
+			 */
+			partition@f0000 {
+				/delete-property/ read-only;
+			};
+		};
+	};
+};
+
+&blsp1_uart1 {
+	bootph-all;
+};
+
+&usb2 {
+	usb@6000000 {
+		snps,dis_u2_susphy_quirk;
+	};
+};
+
+&usb3_dwc {
+	maximum-speed = "high-speed";
+	snps,dis_u2_susphy_quirk;
+};
+
+&swport4 {
+	status = "okay";
+};
+
+&swport5 {
+	status = "okay";
+};
+
+&switch {
+	status = "okay";
+
+	ports {
+		phy-mode = "psgmii";
+
+		psgmii {
+			phy-handle = <&psgmiiphy>;
+		};
+	};
+};
