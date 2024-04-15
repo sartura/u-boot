@@ -248,7 +248,7 @@ static int dwc3_generic_host_probe(struct udevice *dev)
 
 	/* Only returns an error if regulator is valid and failed to enable due to a driver issue */
 	rc = regulator_set_enable_if_allowed(priv->vbus_supply, true);
-	if (rc)
+	if (rc && rc != -ENOSYS)
 		return rc;
 
 	hccr = (struct xhci_hccr *)priv->gen_priv.base;
