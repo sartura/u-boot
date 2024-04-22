@@ -13,8 +13,76 @@
 #include <dm.h>
 #include <errno.h>
 #include <dt-bindings/clock/qcom,gcc-ipq4019.h>
+#include <linux/delay.h>
 
 #include "clock-qcom.h"
+
+/* I2C controller clock control registerss */
+#define BLSP1_QUP1_I2C_APPS_CBCR	(0x2008)
+#define BLSP1_QUP1_I2C_APPS_CMD_RCGR	(0x200C)
+#define BLSP1_QUP1_I2C_APPS_CFG_RCGR	(0x2010)
+
+#define GCC_I2C_CFG_RCGR_SRCSEL_MASK	0x0700
+#define GCC_I2C_CFG_RCGR_SRCDIV_MASK	0x001F
+
+#define GCC_I2C_CFG_RCGR_SRCSEL_SHIFT	8
+#define GCC_I2C_CFG_RCGR_SRCDIV_SHIFT	0
+
+#define GCC_UART_CFG_RCGR_SRCSEL_MASK	0x0700
+#define GCC_UART_CFG_RCGR_SRCDIV_MASK	0x001F
+
+#define I2C0_RCGR_SRC_SEL	1
+#define I2C0_RCGR_SRC_DIV	20
+#define I2C0_CMD_RCGR_UPDATE	0x1
+#define I2C0_CBCR_CLK_ENABLE	0x1
+#define CLOCK_UPDATE_TIMEOUT_US	1000
+
+void i2c0_configure_mux(struct msm_clk_priv *priv)
+{
+	unsigned long cfg_rcgr;
+
+	cfg_rcgr = readl(priv->base + BLSP1_QUP1_I2C_APPS_CFG_RCGR);
+	/* Clear mode, src sel, src div */
+	cfg_rcgr &= ~(GCC_I2C_CFG_RCGR_SRCSEL_MASK |
+			GCC_I2C_CFG_RCGR_SRCDIV_MASK);
+
+	cfg_rcgr |= ((I2C0_RCGR_SRC_SEL << GCC_I2C_CFG_RCGR_SRCSEL_SHIFT)
+			& GCC_UART_CFG_RCGR_SRCSEL_MASK);
+
+	cfg_rcgr |= ((I2C0_RCGR_SRC_DIV << GCC_I2C_CFG_RCGR_SRCDIV_SHIFT)
+			& GCC_UART_CFG_RCGR_SRCDIV_MASK);
+
+	writel(cfg_rcgr, priv->base + BLSP1_QUP1_I2C_APPS_CFG_RCGR);
+}
+
+int i2c0_trigger_update(struct msm_clk_priv *priv)
+{
+	unsigned long cmd_rcgr;
+	int timeout = 0;
+
+	cmd_rcgr = readl(priv->base + BLSP1_QUP1_I2C_APPS_CMD_RCGR);
+	cmd_rcgr |= I2C0_CMD_RCGR_UPDATE;
+	writel(cmd_rcgr, priv->base + BLSP1_QUP1_I2C_APPS_CMD_RCGR);
+
+	while (readl(priv->base + BLSP1_QUP1_I2C_APPS_CMD_RCGR) & I2C0_CMD_RCGR_UPDATE) {
+		if (timeout++ >= CLOCK_UPDATE_TIMEOUT_US) {
+			printf("Timeout waiting for I2C0 clock update\n");
+			return -ETIMEDOUT;
+		}
+		udelay(1);
+	}
+	cmd_rcgr = readl(priv->base + BLSP1_QUP1_I2C_APPS_CMD_RCGR);
+	return 0;
+}
+
+void i2c0_toggle_clock(struct msm_clk_priv *priv)
+{
+	unsigned long cbcr_val;
+
+	cbcr_val = readl(priv->base + BLSP1_QUP1_I2C_APPS_CBCR);
+	cbcr_val |= I2C0_CBCR_CLK_ENABLE;
+	writel(cbcr_val, priv->base + BLSP1_QUP1_I2C_APPS_CBCR);
+}
 
 static ulong ipq4019_clk_set_rate(struct clk *clk, ulong rate)
 {
@@ -29,9 +97,22 @@ static ulong ipq4019_clk_set_rate(struct clk *clk, ulong rate)
 
 static int ipq4019_clk_enable(struct clk *clk)
 {
+	struct msm_clk_priv *priv = dev_get_priv(clk->dev);
+
 	switch (clk->id) {
+	case GCC_BLSP1_AHB_CLK:
+		/* This clock is already initialized by SBL1 */
+		return 0;
 	case GCC_BLSP1_QUP1_SPI_APPS_CLK: /*SPI1*/
 		/* This clock is already initialized by SBL1 */
+		return 0;
+	case GCC_BLSP1_QUP1_I2C_APPS_CLK: /*I2C1*/
+		/*clk_enable_cbc(priv->base + BLSP1_QUP1_I2C_APPS_CBCR);
+		clk_rcg_set_rate(priv->base, BLSP1_QUP1_I2C_APPS_CMD_RCGR, 0,
+				 CFG_CLK_SRC_CXO);*/
+		i2c0_configure_mux(priv);
+		i2c0_trigger_update(priv);
+		i2c0_toggle_clock(priv);
 		return 0;
 	case GCC_PRNG_AHB_CLK: /*PRNG*/
 		/* This clock is already initialized by SBL1 */
