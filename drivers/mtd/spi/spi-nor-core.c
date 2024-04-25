@@ -3816,6 +3816,32 @@ static struct spi_nor_fixups macronix_octal_fixups = {
 };
 #endif /* CONFIG_SPI_FLASH_MACRONIX */
 
+#if CONFIG_IS_ENABLED(SPI_FLASH_WINBOND)
+static int w25q256_post_bfpt_fixup(struct spi_nor *nor,
+				   const struct sfdp_parameter_header *header,
+				   const struct sfdp_bfpt *bfpt,
+				   struct spi_nor_flash_parameter *params)
+{
+	/*
+	 * W25Q256JV supports 4B opcodes but W25Q256FV does not.
+	 * Unfortunately, Winbond has re-used the same JEDEC ID for both
+	 * variants which prevents us from defining a new entry in the parts
+	 * table.
+	 * To differentiate between W25Q256JV and W25Q256FV check SFDP header
+	 * version: only JV has JESD216A compliant structure (version 5).
+	 */
+	if(header->major == SFDP_JESD216_MAJOR &&
+	   header->minor == SFDP_JESD216A_MINOR)
+		nor->flags |= SNOR_F_4B_OPCODES;
+
+	return 0;
+}
+
+static struct spi_nor_fixups w25q256_fixups = {
+	.post_bfpt = w25q256_post_bfpt_fixup,
+};
+#endif /* CONFIG_SPI_FLASH_WINBOND */
+
 /** spi_nor_octal_dtr_enable() - enable Octal DTR I/O if needed
  * @nor:                 pointer to a 'struct spi_nor'
  *
@@ -4004,6 +4030,11 @@ void spi_nor_set_fixups(struct spi_nor *nor)
 #if CONFIG_IS_ENABLED(SPI_FLASH_MACRONIX)
 	nor->fixups = &macronix_octal_fixups;
 #endif /* SPI_FLASH_MACRONIX */
+
+#if CONFIG_IS_ENABLED(SPI_FLASH_WINBOND)
+	if (!strcmp(nor->info->name, "w25q256"))
+		nor->fixups = &w25q256_fixups;
+#endif /* SPI_FLASH_WINBOND */
 }
 
 int spi_nor_scan(struct spi_nor *nor)
