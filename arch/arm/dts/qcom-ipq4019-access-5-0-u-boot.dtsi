@@ -1,0 +1,79 @@
+// SPDX-License-Identifier: GPL-2.0-or-later OR MIT
+
+#include "qcom-ipq4019-u-boot.dtsi"
+
+/ {
+	memory {
+		device_type = "memory";
+		reg = <0x80000000 0x20000000>;
+	};
+
+	aliases {
+		serial0 = &blsp1_uart1;
+	};
+
+	chosen {
+		stdout-path = "serial0:115200n8";
+	};
+};
+
+&serial_pins {
+	bootph-all;
+};
+
+&spi_0_pins {
+	bootph-all;
+};
+
+&blsp1_uart1 {
+	bootph-all;
+};
+
+&blsp1_spi1 {
+	bootph-all;
+
+	num-cs = <1>;
+};
+
+&switch {
+	status = "okay";
+
+	ports {
+		phy-mode = "psgmii";
+
+		psgmii {
+			phy-handle = <&psgmiiphy>;
+		};
+	};
+};
+
+&swport1 {
+	status = "okay";
+	label = "wan";
+
+	nvmem-cell-names = "mac-address";
+	nvmem-cells = <&macaddr_art_6>;
+};
+
+&swport2 {
+	status = "okay";
+	label = "lan1";
+};
+
+&swport3 {
+	status = "okay";
+	label = "lan2";
+};
+
+&swport4 {
+	status = "okay";
+	label = "lan3";
+};
+
+&swport5 {
+	status = "okay";
+	label = "sfp";
+
+	nvmem-cell-names = "mac-address";
+	nvmem-cells = <&macaddr_art_6>;
+};
