@@ -243,6 +243,12 @@ config PHY_NXP_TJA11XX
 	help
 	  Currently supports the NXP TJA1100 and TJA1101 PHY.
 
+config PHY_QCA807X
+	bool "Qualcomm QCA807x PHYs support"
+	help
+	  Currently supports the Qualcomm QCA8072, QCA8075 and the PSGMII
+	  control PHY.
+
 config PHY_REALTEK
 	bool "Realtek Ethernet PHYs support"
 
