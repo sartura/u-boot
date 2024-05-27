@@ -1,0 +1,60 @@
+// SPDX-License-Identifier: GPL-2.0-or-later OR MIT
+
+#include "qcom-ipq4019-u-boot.dtsi"
+
+/ {
+	memory {
+		device_type = "memory";
+		reg = <0x80000000 0x10000000>;
+	};
+};
+
+&serial0_pins {
+	bootph-all;
+};
+
+&spi0_pins {
+	bootph-all;
+};
+
+&blsp1_uart1 {
+	bootph-all;
+};
+
+&blsp1_spi1 {
+	bootph-all;
+
+	num-cs = <2>;
+};
+
+&swport1 {
+	status = "okay";
+};
+
+&swport2 {
+	status = "okay";
+};
+
+&swport3 {
+	status = "okay";
+};
+
+&swport4 {
+	status = "okay";
+};
+
+&swport5 {
+	status = "okay";
+};
+
+&switch {
+	status = "okay";
+
+	ports {
+		phy-mode = "psgmii";
+
+		psgmii {
+			phy-handle = <&psgmiiphy>;
+		};
+	};
+};
