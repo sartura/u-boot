@@ -597,9 +597,12 @@ static int essedma_of_phy(struct udevice *dev)
 				return -ENODEV;
 			}
 
-			phy_addr = ofnode_read_u32_default(phandle_args.node, "reg", 0);
-			if (!phy_addr)
-				return -EINVAL;
+			ret = ofnode_read_u32(phandle_args.node, "reg", &phy_addr);
+			if (ret) {
+				debug("Missing reg property in PHY node %s\n",
+				      ofnode_get_name(phandle_args.node));
+				return ret;
+			}
 
 			phydev = dm_mdio_phy_connect(priv->mdio_dev, phy_addr,
 						     dev, priv->esw.port_wrapper_mode);
