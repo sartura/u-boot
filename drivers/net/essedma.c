@@ -14,6 +14,7 @@
 #include <clk.h>
 #include <cpu_func.h>
 #include <dm.h>
+#include <dm/device_compat.h>
 #include <errno.h>
 #include <linux/bitfield.h>
 #include <linux/bitops.h>
@@ -51,6 +52,7 @@ struct ess_switch {
 
 struct essedma_priv {
 	phys_addr_t base;
+	struct udevice *dev;
 	struct clk ess_clk;
 	struct reset_ctl ess_rst;
 	struct udevice *mdio_dev;
@@ -430,7 +432,7 @@ static void psgmii_self_test(struct udevice *dev)
 	esw_port_loopback_set_all(esw, false);
 
 	tm = get_timer(tm);
-	debug("\nPSGMII self-test: succeed %d, failed %d (max %d), duration %lu.%03lu secs\n",
+	dev_dbg(priv->dev, "\nPSGMII self-test: succeed %d, failed %d (max %d), duration %lu.%03lu secs\n",
 	      stats.succeed, stats.failed, stats.failed_max,
 	      tm / 1000, tm % 1000);
 }
@@ -593,13 +595,13 @@ static int essedma_of_phy(struct udevice *dev)
 		if (ofnode_is_enabled(node)) {
 			if (ofnode_parse_phandle_with_args(node, "phy-handle", NULL, 0, 0,
 					       &phandle_args)) {
-				debug("Failed to find phy-handle\n");
+				dev_dbg(priv->dev, "Failed to find phy-handle\n");
 				return -ENODEV;
 			}
 
 			ret = ofnode_read_u32(phandle_args.node, "reg", &phy_addr);
 			if (ret) {
-				debug("Missing reg property in PHY node %s\n",
+				dev_dbg(priv->dev, "Missing reg property in PHY node %s\n",
 				      ofnode_get_name(phandle_args.node));
 				return ret;
 			}
@@ -607,7 +609,7 @@ static int essedma_of_phy(struct udevice *dev)
 			phydev = dm_mdio_phy_connect(priv->mdio_dev, phy_addr,
 						     dev, priv->esw.port_wrapper_mode);
 			if (!phydev) {
-				debug("Failed to find phy on addr %d\n", phy_addr);
+				dev_dbg(priv->dev, "Failed to find phy on addr %d\n", phy_addr);
 				return -ENODEV;
 			}
 
@@ -1074,6 +1076,8 @@ static int essedma_probe(struct udevice *dev)
 	struct essedma_priv *priv = dev_get_priv(dev);
 	int ret;
 
+	priv->dev = dev;
+
 	priv->base = dev_read_addr_name(dev, "edma");
 	if (priv->base == FDT_ADDR_T_NONE)
 		return -EINVAL;
@@ -1104,7 +1108,7 @@ static int essedma_probe(struct udevice *dev)
 					  DM_DRIVER_GET(ipq4019_mdio),
 					  &priv->mdio_dev);
 	if (ret) {
-		debug("Cant find IPQ4019 MDIO: %d\n", ret);
+		dev_dbg(dev, "Cant find IPQ4019 MDIO: %d\n", ret);
 		goto err;
 	}
 
